@@ -10,8 +10,8 @@ output/
 
 # Training corpus (keep the folder, ignore large/derived MIDI).
 # Demo files from scripts/make_demo_data.py are regenerable; real corpora are big.
-data/midi/**/*.mid
-data/midi/**/*.midi
+# data/midi/**/*.mid
+# data/midi/**/*.midi
 !data/midi/.gitkeep
 
 # OS / editor
