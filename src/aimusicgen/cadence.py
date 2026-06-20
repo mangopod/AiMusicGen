@@ -86,6 +86,8 @@ def append_cadence(pm: pretty_midi.PrettyMIDI, kind: str,
 
 
 def resolve_kind(cadence: str | None) -> str | None:
+    """Normalize a cadence request: 'half'/'plagal' pass through, 'either' picks
+    one at random, anything else → None (no cadence)."""
     if cadence in ("half", "plagal"):
         return cadence
     if cadence == "either":

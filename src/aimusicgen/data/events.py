@@ -100,6 +100,7 @@ def events_to_midi(tokens: list[int], tempo: int = C.DEFAULT_TEMPO,
 
 def save_events_as_midi(tokens: list[int], path: str | Path,
                         tempo: int = C.DEFAULT_TEMPO) -> Path:
+    """Decode ``tokens`` to MIDI and write it to ``path`` (returns the path)."""
     path = Path(path)
     events_to_midi(tokens, tempo=tempo).write(str(path))
     return path

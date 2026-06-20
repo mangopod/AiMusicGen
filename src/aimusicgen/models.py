@@ -17,14 +17,18 @@ MANIFEST = C.CKPT_DIR / "models.json"
 
 
 def model_path(model_id: str) -> Path:
+    """Filesystem path of a model's checkpoint (``checkpoints/<id>.pt``)."""
     return C.CKPT_DIR / f"{model_id}.pt"
 
 
 def make_id(composers) -> str:
+    """Stable model id from a composer set, e.g. ['bach','beethoven'] →
+    'bach+beethoven' (so retraining the same set updates the same model)."""
     return "+".join(sorted(composers)) if composers else "model"
 
 
 def default_name(composers) -> str:
+    """Human-readable default name for a model, e.g. 'Bach + Beethoven'."""
     if not composers:
         return "model"
     pretty = {"curated": "Keepers"}
@@ -89,12 +93,14 @@ def list_models() -> dict:
 
 
 def get_active() -> str | None:
+    """The active model's id (the one generation loads), or None if it's gone."""
     d = _load()
     a = d.get("active")
     return a if a and model_path(a).exists() else None
 
 
 def set_active(model_id: str) -> bool:
+    """Make ``model_id`` active. Returns False if its checkpoint is missing."""
     if not model_path(model_id).exists():
         return False
     d = _load()
@@ -104,6 +110,7 @@ def set_active(model_id: str) -> bool:
 
 
 def rename(model_id: str, name: str) -> bool:
+    """Set a model's friendly name in the manifest."""
     if not model_path(model_id).exists():
         return False
     d = _load()
@@ -117,6 +124,8 @@ def rename(model_id: str, name: str) -> bool:
 
 
 def delete(model_id: str) -> bool:
+    """Delete a model's checkpoint + manifest entry; if it was active, fall back
+    to the most recently modified remaining checkpoint."""
     p = model_path(model_id)
     if not p.exists():
         return False

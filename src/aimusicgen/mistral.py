@@ -23,6 +23,10 @@ def _model() -> str:
 
 def analyze_notes(name: str, note_names: list[str], intervals: list[int],
                   question: str = "", timeout: int = 120) -> str:
+    """Ask the local model for a key/interval/voice-leading analysis of a note
+    list. Builds a prompt from ``note_names`` (and the optional user ``question``),
+    POSTs it to Ollama, and returns the reply text. Raises RuntimeError if Ollama
+    is unreachable or the model is missing."""
     model = _model()
     seq = " ".join(note_names[:400])
     more = "" if len(note_names) <= 400 else f"  (+{len(note_names) - 400} more)"

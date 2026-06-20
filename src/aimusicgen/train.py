@@ -109,6 +109,8 @@ def train(
 
 def save_checkpoint(model: MusicLSTM, cfg: TrainConfig, epoch: int, val: float,
                     path=None) -> None:
+    """Write the model weights + ``model_cfg`` + encoding tag to ``path`` (default
+    ``CKPT_PATH``). The encoding tag lets loaders reject incompatible checkpoints."""
     torch.save(
         {
             "state_dict": model.state_dict(),

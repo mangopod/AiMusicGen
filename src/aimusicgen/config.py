@@ -53,40 +53,50 @@ def time_shift_token(k: int) -> int:
 
 
 def note_on_token(pitch: int) -> int:
+    """Token id for starting note ``pitch`` (PITCH_MIN..PITCH_MAX)."""
     return _NOTE_ON_BASE + (pitch - PITCH_MIN)
 
 
 def note_off_token(pitch: int) -> int:
+    """Token id for ending note ``pitch``."""
     return _NOTE_OFF_BASE + (pitch - PITCH_MIN)
 
 
 def is_time_shift(tok: int) -> bool:
+    """True if ``tok`` is a TIME_SHIFT token."""
     return _SHIFT_BASE <= tok < _SHIFT_BASE + MAX_SHIFT
 
 
 def is_note_on(tok: int) -> bool:
+    """True if ``tok`` is a NOTE_ON token."""
     return _NOTE_ON_BASE <= tok < _NOTE_ON_BASE + N_PITCH
 
 
 def is_note_off(tok: int) -> bool:
+    """True if ``tok`` is a NOTE_OFF token."""
     return _NOTE_OFF_BASE <= tok < _NOTE_OFF_BASE + N_PITCH
 
 
 def shift_amount(tok: int) -> int:
+    """Number of grid steps a TIME_SHIFT token advances (inverse of time_shift_token)."""
     return tok - _SHIFT_BASE + 1
 
 
 def note_on_pitch(tok: int) -> int:
+    """MIDI pitch of a NOTE_ON token (inverse of note_on_token)."""
     return tok - _NOTE_ON_BASE + PITCH_MIN
 
 
 def note_off_pitch(tok: int) -> int:
+    """MIDI pitch of a NOTE_OFF token (inverse of note_off_token)."""
     return tok - _NOTE_OFF_BASE + PITCH_MIN
 
 
 # --- Model / training ----------------------------------------------------
 @dataclass
 class ModelConfig:
+    """Architecture hyperparameters for :class:`model.lstm.MusicLSTM`
+    (vocabulary size, embedding & hidden widths, LSTM depth, dropout)."""
     vocab_size: int = VOCAB_SIZE
     embed_dim: int = 128
     hidden_dim: int = 256
@@ -96,6 +106,8 @@ class ModelConfig:
 
 @dataclass
 class TrainConfig:
+    """Training hyperparameters (window size/hop, batch, epochs, LR, etc.) plus
+    the nested :class:`ModelConfig`. See Training.md for what each controls."""
     seq_len: int = 128            # events are denser than frames -> longer context
     stride: int = 4              # window hop (keeps polyphonic corpora tractable)
     batch_size: int = 128

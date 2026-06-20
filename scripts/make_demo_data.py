@@ -24,6 +24,7 @@ STEP = C.SECONDS_PER_STEP
 
 
 def _write(notes: list[tuple[int, float, float]], path: Path) -> None:
+    """Write a list of (pitch, start, end) notes as a single-instrument MIDI file."""
     pm = pretty_midi.PrettyMIDI(initial_tempo=float(C.DEFAULT_TEMPO))
     inst = pretty_midi.Instrument(program=0)
     for pitch, start, end in notes:
@@ -34,6 +35,7 @@ def _write(notes: list[tuple[int, float, float]], path: Path) -> None:
 
 
 def scale_song(root: int, descending: bool = False) -> list[tuple[int, float, float]]:
+    """Two octaves of a major scale (ascending or descending) from ``root``."""
     degs = MAJOR[::-1] if descending else MAJOR
     notes, t = [], 0.0
     for _ in range(2):
@@ -44,6 +46,7 @@ def scale_song(root: int, descending: bool = False) -> list[tuple[int, float, fl
 
 
 def arpeggio_song(root: int) -> list[tuple[int, float, float]]:
+    """Four repetitions of a major triad arpeggio from ``root``."""
     notes, t = [], 0.0
     for _ in range(4):
         for d in TRIAD:
@@ -53,6 +56,7 @@ def arpeggio_song(root: int) -> list[tuple[int, float, float]]:
 
 
 def motif_song(root: int, rng: random.Random) -> list[tuple[int, float, float]]:
+    """A short random major-scale motif (varied durations, occasional rests)."""
     notes, t = [], 0.0
     for _ in range(24):
         d = rng.choice(MAJOR)
@@ -65,6 +69,7 @@ def motif_song(root: int, rng: random.Random) -> list[tuple[int, float, float]]:
 
 
 def main() -> None:
+    """Write scales, arpeggios, and motifs across several keys to data/midi/."""
     rng = random.Random(0)
     out = C.DATA_DIR
     n = 0

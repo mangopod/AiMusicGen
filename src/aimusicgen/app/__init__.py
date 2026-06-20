@@ -1,4 +1,5 @@
-"""Launch the native window."""
+"""Native app shell: a pywebview window hosting the HTML/JS UI in ``ui/``, with an
+:class:`api.Api` instance bridged in as ``window.pywebview.api``."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -11,6 +12,8 @@ UI_DIR = Path(__file__).resolve().parent / "ui"
 
 
 def run() -> None:
+    """Create the native window, attach the JS↔Python API, and start the event
+    loop (blocks until the window is closed)."""
     api = Api()
     webview.create_window(
         "AiMusicGen",

@@ -40,12 +40,22 @@ def _idle_train_state() -> dict:
 
 
 class Api:
+    """The object exposed to the webview as ``window.pywebview.api``.
+
+    Every public method here is callable from the front-end JavaScript and
+    returns JSON-serializable data. Methods are grouped below: generation, the
+    saved-generations library, the "My MIDI" pool, the music21 corpus browser,
+    constraints, training, the saved-model library, counterpoint/fugue, and the
+    Mistral analysis. ``_``-prefixed members are internal helpers.
+    """
+
     def __init__(self):
-        self._lock = threading.Lock()
-        self._train = _idle_train_state()
+        self._lock = threading.Lock()       # serialises generation (one model/device)
+        self._train = _idle_train_state()   # background-training progress, polled by the UI
 
     @staticmethod
     def _model_name(model_id):
+        """Friendly name for a model id (falls back to the id)."""
         if not model_id:
             return None
         m = next((x for x in models.list_models()["models"]
@@ -53,6 +63,8 @@ class Api:
         return m["name"] if m else model_id
 
     def status(self) -> dict:
+        """App status for the UI: whether a usable model is active, its name, the
+        corpus file count, and the output directory."""
         n_midi = sum(1 for _ in C.DATA_DIR.rglob("*.mid")) + \
                  sum(1 for _ in C.DATA_DIR.rglob("*.midi"))
         active = models.get_active()
@@ -81,6 +93,14 @@ class Api:
         return payload
 
     def generate(self, params: dict | None = None) -> dict:
+        """Generate a piece with the active model and return it for playback.
+
+        ``params`` (all optional): ``length``, ``temperature``, ``top_k``,
+        ``tempo``, ``seed``, ``constraints`` (rule ids), ``constraint_strength``,
+        ``cadence`` (half/plagal/either), ``key`` (e.g. "C major"). The result is
+        saved to the library and returned with a base64 MIDI ``data_uri`` and
+        staff ``musicxml``.
+        """
         params = params or {}
         if self._train["running"]:
             raise RuntimeError("Training in progress — try again when it finishes.")
@@ -184,6 +204,7 @@ class Api:
 
     # --- saved-generations library -----------------------------------
     def list_generations(self) -> dict:
+        """All saved generations in output/, newest first (metadata only)."""
         entries = library.list_entries()
         return {"count": len(entries), "generations": entries}
 
@@ -198,27 +219,34 @@ class Api:
         return out
 
     def rename_generation(self, file: str, name: str) -> dict:
+        """Set the friendly name of a saved generation."""
         return {"ok": library.rename(file, name)}
 
     def delete_generation(self, file: str) -> dict:
+        """Delete a saved generation (file + manifest entry)."""
         return {"ok": library.delete(file)}
 
     # --- curated training pool (human feedback loop) ------------------
     def keep_generation(self, file: str) -> dict:
+        """Copy a generation into the curated training pool ("keep" it)."""
         return {"ok": library.keep(file), "count": library.keepers_count()}
 
     def unkeep_generation(self, file: str) -> dict:
+        """Remove a generation from the curated pool."""
         return {"ok": library.unkeep(file), "count": library.keepers_count()}
 
     def keepers_count(self) -> dict:
+        """Number of files in the curated pool (drives the '★ My MIDI' chip)."""
         return {"count": library.keepers_count()}
 
     # --- "My MIDI" drop folder (data/midi/curated) --------------------
     def list_my_midi(self) -> dict:
+        """List the drop-folder files (kept generations + user-dropped MIDI)."""
         files = library.list_curated()
         return {"count": len(files), "dir": str(library.CURATED_DIR), "files": files}
 
     def load_my_midi(self, file: str) -> dict:
+        """Load a My-MIDI file for playback (audio + staff)."""
         path = library.curated_path(file)
         if not path.exists():
             return {"error": "not found"}
@@ -227,9 +255,11 @@ class Api:
         return out
 
     def delete_my_midi(self, file: str) -> dict:
+        """Remove a file from the My-MIDI drop folder."""
         return {"ok": library.unkeep(file), "count": library.keepers_count()}
 
     def reveal_my_midi(self) -> bool:
+        """Open the My-MIDI drop folder in Finder."""
         try:
             library.CURATED_DIR.mkdir(parents=True, exist_ok=True)
             subprocess.run(["open", str(library.CURATED_DIR)], check=False)
@@ -274,6 +304,8 @@ class Api:
 
     # --- training: per-composer or mixed model -----------------------
     def training_status(self) -> dict:
+        """Snapshot of background-training progress (phase, epoch, losses,
+        message) — the UI polls this to drive the progress bar."""
         return dict(self._train)
 
     def train_corpus(self, params: dict | None = None) -> dict:
@@ -350,15 +382,19 @@ class Api:
 
     # --- saved-model library -----------------------------------------
     def list_models(self) -> dict:
+        """All saved checkpoints + which one is active."""
         return models.list_models()
 
     def set_active_model(self, model_id: str) -> dict:
+        """Make ``model_id`` the model generation loads from ('reload')."""
         return {"ok": models.set_active(model_id)}
 
     def rename_model(self, model_id: str, name: str) -> dict:
+        """Set a model's friendly name."""
         return {"ok": models.rename(model_id, name)}
 
     def delete_model(self, model_id: str) -> dict:
+        """Delete a saved checkpoint (re-points 'active' if it was active)."""
         return {"ok": models.delete(model_id)}
 
     def reveal_output(self) -> bool:

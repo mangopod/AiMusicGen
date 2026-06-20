@@ -24,6 +24,7 @@ SCORE_EXTS = ("*.mxl", "*.xml", "*.musicxml", "*.krn", "*.abc", "*.mid",
 
 
 def corpus_base() -> Path:
+    """Filesystem root of the bundled music21 corpus."""
     return Path(common.getCorpusFilePath())
 
 

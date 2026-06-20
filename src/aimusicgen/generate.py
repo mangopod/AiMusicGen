@@ -74,6 +74,21 @@ def sample(
     constraint_strength: float = 1.0,
     key: str | None = None,
 ) -> list[int]:
+    """Autoregressively sample a token sequence from ``model``.
+
+    Args:
+        length: number of tokens to generate.
+        temperature: softmax temperature (>1 more random, <1 more conservative).
+        top_k: if >0, restrict sampling to the k most likely tokens each step.
+        seed_tokens: optional priming tokens (defaults to a single TIME_SHIFT).
+        rng_seed: seed for reproducible output.
+        constraint_rules: voice-leading rule ids to bias note choice (see
+            :mod:`constraints`); ``constraint_strength`` scales their effect.
+        key: optional "C major"-style key to hard-restrict pitches to.
+
+    Returns:
+        The flat list of generated token ids (including the primer).
+    """
     device = device or get_device()
     if rng_seed is not None:
         torch.manual_seed(rng_seed)

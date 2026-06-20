@@ -43,6 +43,9 @@ simultaneous-voice cap (`MAX_VOICES`). These affect generation only, not trainin
 > Known v1 limitation: a single stream can't represent two voices playing the
 > *same pitch* at the same instant — rare unison doublings collapse to one note.
 
+For the full data pipeline (MIDI → tokens → windows → batches) and the training
+loop, see **[Training.md](Training.md)**.
+
 ## Setup
 
 A venv already exists (`.venv`, reusing the system MPS-enabled PyTorch). To

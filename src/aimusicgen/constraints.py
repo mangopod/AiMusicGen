@@ -59,6 +59,7 @@ _RULE_FN = {"stepwise": _stepwise_w, "direction": _direction_w, "rare_leaps": _r
 
 
 def list_rules() -> list[dict]:
+    """The selectable voice-leading rules (id, name, description) for the UI."""
     return [dict(r) for r in RULES]
 
 
@@ -69,6 +70,7 @@ _MINOR_SCALE = (0, 2, 3, 5, 7, 8, 10)   # natural minor
 
 
 def list_keys() -> list[str]:
+    """All 24 key names ('C major' … 'B minor')."""
     return [f"{n} {m}" for m in ("major", "minor") for n in NOTE_NAMES]
 
 

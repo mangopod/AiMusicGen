@@ -41,6 +41,7 @@ def safe_path(file: str) -> Path:
 
 
 def add_entry(path: str | Path, n_notes: int, params: dict) -> None:
+    """Record a freshly written generation in the manifest (name, time, params)."""
     path = Path(path)
     meta = _load()
     meta[path.name] = {
@@ -86,6 +87,7 @@ def keep(file: str) -> bool:
 
 
 def unkeep(file: str) -> bool:
+    """Remove ``file`` from the curated pool (no-op if absent)."""
     p = CURATED_DIR / Path(file).name
     if p.exists():
         try:
@@ -96,6 +98,7 @@ def unkeep(file: str) -> bool:
 
 
 def keepers_count() -> int:
+    """Number of .mid files in the curated pool."""
     return sum(1 for _ in CURATED_DIR.glob("*.mid")) if CURATED_DIR.exists() else 0
 
 
@@ -124,10 +127,12 @@ def list_curated() -> list[dict]:
 
 
 def curated_path(file: str):
+    """Resolve a filename safely inside the curated pool dir."""
     return CURATED_DIR / Path(file).name
 
 
 def rename(file: str, name: str) -> bool:
+    """Set the friendly name of a saved generation in the manifest."""
     p = safe_path(file)
     if not p.exists():
         return False
@@ -142,6 +147,7 @@ def rename(file: str, name: str) -> bool:
 
 
 def delete(file: str) -> bool:
+    """Delete a generation file from output/ and drop its manifest entry."""
     p = safe_path(file)
     if not p.exists():
         return False
