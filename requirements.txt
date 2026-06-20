@@ -1,0 +1,15 @@
+# Core ML — torch is reused from the system/anaconda install (MPS-enabled on
+# Apple Silicon). Pin if you recreate the venv without --system-site-packages.
+torch>=2.2
+
+# MIDI I/O
+pretty_midi>=0.2.10
+mido>=1.3
+
+# Symbolic-music toolkit + bundled corpora (Bach corpus, offline)
+music21>=9.1
+
+# Native window (webview shell)
+pywebview>=5.0
+
+numpy>=1.24

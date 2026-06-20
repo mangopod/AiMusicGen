@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AiMusicGen</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Tone.js + magenta html-midi-player: in-page Web Audio playback + visualizer -->
+  <script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.77,npm/@magenta/music@1.23.1/es6/core.js,npm/focus-visible@5,npm/html-midi-player@1.5.0"></script>
+  <!-- OpenSheetMusicDisplay: render MusicXML as a staff (SVG) in-page -->
+  <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@1.8.7/build/opensheetmusicdisplay.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>AiMusicGen</h1>
+        <div id="status" class="status">…</div>
+      </div>
+
+      <div class="side-card">
+        <div class="side-title">Generation</div>
+        <label>Length (events) <span class="val" id="lenVal">512</span>
+          <input type="range" id="length" min="64" max="2048" step="64" value="512" />
+        </label>
+        <label>Temperature <span class="val" id="tempVal">1.0</span>
+          <input type="range" id="temperature" min="0.2" max="1.8" step="0.05" value="1.0" />
+        </label>
+        <label>Top-k <span class="val" id="topkVal">off</span>
+          <input type="range" id="topk" min="0" max="40" step="1" value="0" />
+        </label>
+        <label>Tempo (BPM) <span class="val" id="tempoVal">120</span>
+          <input type="range" id="tempo" min="60" max="200" step="5" value="120" />
+        </label>
+        <label class="seed">Seed (optional)
+          <input type="number" id="seed" placeholder="random" />
+        </label>
+        <button id="generate" class="primary block">Generate</button>
+        <div id="cstrBadge" class="cstr-badge"></div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-btn" data-view="generate">Score &amp; playback</button>
+        <button class="nav-btn" data-view="training">Model training</button>
+        <button class="nav-btn" data-view="generations">Generations</button>
+        <button class="nav-btn" data-view="mymidi">My MIDI</button>
+        <button class="nav-btn" data-view="corpus">Music corpus</button>
+        <button class="nav-btn" data-view="constraints">Constraints</button>
+        <button class="nav-btn" data-view="counterpoint">Counterpoint</button>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <!-- Score & playback -->
+      <section id="view-generate" class="view">
+        <div id="player-wrap" class="player hidden">
+          <div class="track-name" id="trackName"></div>
+          <midi-player id="player" sound-font visualizer="#viz"></midi-player>
+          <midi-visualizer id="viz" type="piano-roll"></midi-visualizer>
+          <div id="sheet" class="sheet hidden"></div>
+        </div>
+        <div id="genEmpty" class="empty">Set parameters on the left and click <b>Generate</b>.</div>
+        <footer id="msg"></footer>
+      </section>
+
+      <!-- Model training -->
+      <section id="view-training" class="view">
+        <div class="view-head">
+          <h2>Model training</h2>
+          <span id="activeModel" class="status">…</span>
+        </div>
+        <div class="model-train">
+          <div class="mt-controls">
+            <label>Works / composer <input type="number" id="nWorks" min="1" value="80" placeholder="all" /></label>
+            <label>Epochs <input type="number" id="epochs" min="1" max="500" value="30" /></label>
+            <label class="mt-name">Model name <input type="text" id="modelName" placeholder="(auto from composers)" /></label>
+            <button id="trainBtn" class="primary">Train model</button>
+          </div>
+          <div class="mt-pick-head">Train on (select one or more — multiple = mixed model)
+            <span id="pickCount" class="muted"></span></div>
+          <div id="composerPicker" class="composer-picker">loading…</div>
+          <span id="trainStatus" class="status">idle</span>
+          <div class="progress"><div id="progressBar" class="bar"></div></div>
+        </div>
+        <ul id="modelList" class="lib-list"></ul>
+      </section>
+
+      <!-- Saved generations -->
+      <section id="view-generations" class="view">
+        <div class="view-head">
+          <h2>Saved generations</h2>
+          <span id="libCount" class="status">…</span>
+          <button id="reveal" class="ghost">Open output folder</button>
+        </div>
+        <ul id="libList" class="lib-list"></ul>
+      </section>
+
+      <!-- Voice-leading constraints -->
+      <section id="view-constraints" class="view">
+        <div class="view-head">
+          <h2>Constraints</h2>
+          <span class="muted">applied while generating</span>
+        </div>
+        <p class="hint">Enable rules to bias generation toward these voice-leading
+          statistics. They reweight each note choice during sampling.</p>
+        <label class="cstr-strength">Strength <span class="val" id="cstrVal">1.2</span>
+          <input type="range" id="cstr" min="0.2" max="2.5" step="0.1" value="1.2" />
+        </label>
+        <label class="cstr-select">Stay within key
+          <select id="keySelect" class="composer-select">
+            <option value="">Off (any key)</option>
+          </select>
+        </label>
+        <label class="cstr-select">Final cadence
+          <select id="cadence" class="composer-select">
+            <option value="">None</option>
+            <option value="half">Half cadence (end on V)</option>
+            <option value="plagal">Plagal cadence (IV → I)</option>
+            <option value="either">Either (random)</option>
+          </select>
+        </label>
+        <p class="hint">A cadence is appended after generation in the piece's detected key.</p>
+        <ul id="rulesList" class="rules-list"></ul>
+      </section>
+
+      <!-- Counterpoint generator -->
+      <section id="view-counterpoint" class="view">
+        <div class="view-head">
+          <h2>Counterpoint generator</h2>
+          <span class="muted">first species · after Fux</span>
+        </div>
+        <p class="hint">Generates a cantus firmus and a rule-valid first-species
+          counterpoint (note-against-note): consonances only, no parallel 5ths/8ves,
+          stepwise leading-tone cadence. Output opens in Score &amp; playback.</p>
+        <div class="mt-controls">
+          <label>Key <select id="cpKey" class="composer-select"></select></label>
+          <label>Length <input type="number" id="cpLength" min="6" max="16" value="10" /></label>
+          <label>Counterpoint
+            <select id="cpVoice" class="composer-select">
+              <option value="above">above the cantus firmus</option>
+              <option value="below">below the cantus firmus</option>
+            </select>
+          </label>
+          <label>Species
+            <select id="cpSpecies" class="composer-select">
+              <option value="1">1 — note-against-note</option>
+              <option value="2">2 — two-against-one</option>
+              <option value="3">3 — four-against-one</option>
+              <option value="4">4 — suspensions</option>
+              <option value="5">5 — florid (mixed)</option>
+            </select>
+          </label>
+          <button id="cpBtn" class="primary">Generate counterpoint</button>
+        </div>
+        <span id="cpStatus" class="status">idle</span>
+
+        <div class="mt-pick-head" style="margin-top:20px">Fugue exposition (subject + tonal answer)</div>
+        <p class="hint">States a generated subject, then its <b>tonal answer</b> in a
+          second voice — transposed to the dominant with the head tonic↔dominant
+          adjustment — plus a countersubject. Uses the Key &amp; Length above.</p>
+        <div class="mt-controls">
+          <label>Voices
+            <select id="fugueVoices" class="composer-select">
+              <option value="2">2 voices</option>
+              <option value="3">3 voices</option>
+              <option value="4" selected>4 voices</option>
+            </select>
+          </label>
+          <button id="fugueBtn" class="primary">Generate fugue exposition</button>
+        </div>
+        <span id="fugueStatus" class="status">idle</span>
+      </section>
+
+      <!-- My MIDI (drop folder) -->
+      <section id="view-mymidi" class="view">
+        <div class="view-head">
+          <h2>My MIDI</h2>
+          <span id="myMidiCount" class="status">…</span>
+          <button id="revealMyMidi" class="ghost">Open folder</button>
+        </div>
+        <p class="hint">Drop <code>.mid</code> files into <code id="myMidiDir">data/midi/curated/</code>
+          (or use <b>☆ Keep</b> on a generation). These show up as the <b>★ My MIDI</b> source in Model training.</p>
+        <ul id="myMidiList" class="lib-list"></ul>
+      </section>
+
+      <!-- Music corpus -->
+      <section id="view-corpus" class="view">
+        <div class="view-head">
+          <h2>Music corpus <span class="muted">· music21</span></h2>
+          <select id="composer" class="composer-select" title="Choose a composer / collection"></select>
+          <span id="corpusCount" class="status">loading…</span>
+        </div>
+        <input id="corpusFilter" type="search"
+               placeholder="Filter works (e.g. bwv66, 248, chorale)…" autocomplete="off" />
+        <div id="corpusPlayerWrap" class="corpus-player hidden">
+          <span class="play-label" id="corpusPlayLabel"></span>
+          <midi-player id="corpusPlayer" sound-font></midi-player>
+        </div>
+        <div class="corpus-body">
+          <ul id="corpusList" class="corpus-list"></ul>
+          <pre id="corpusRaw" class="corpus-raw">Select a work on the left to view its raw data…</pre>
+        </div>
+        <div class="corpus-analysis">
+          <textarea id="mistralQuery" class="mistral-query" rows="2"
+            placeholder="Optional: ask Mistral a question about this piece (sent with the analysis)…"></textarea>
+          <button id="analyzeBtn" disabled>Analyze with Mistral</button>
+          <pre id="corpusAnalysis" class="corpus-raw analysis">Select a work, then analyze — Mido extracts the notes and your local Mistral (Ollama) returns a key &amp; interval analysis. Type a question above to ask about the piece too.</pre>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

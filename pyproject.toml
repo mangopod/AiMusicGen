@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aimusicgen"
+version = "0.1.0"
+description = "Local-ML MIDI melody generation in a native mac webview app"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.2",
+    "pretty_midi>=0.2.10",
+    "mido>=1.3",
+    "music21>=9.1",
+    "pywebview>=5.0",
+    "numpy>=1.24",
+]
+
+[project.scripts]
+aimusicgen = "aimusicgen.app:run"
+
+[tool.setuptools.packages.find]
+where = ["src"]
